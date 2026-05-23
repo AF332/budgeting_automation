@@ -1,31 +1,37 @@
 # Budget Automation
 
-A small Python project to collect transactions from Monzo and Open Banking providers via TrueLayer, normalise them into a single list, and support a mixed manual/automatic workflow for budget tracking.
+A small Python project to collect transactions from Monzo and Open Banking providers via TrueLayer, normalise them into a single list, categorise them, and write monthly totals directly into a personal budget Excel workbook.
 
 ## What this project does
 
 - Fetches Monzo transactions via the Monzo OAuth2 API.
-- Fetches bank transactions from TrueLayer-connected providers.
-- Normalises, deduplicates, and sorts transactions from multiple sources.
-- Includes helper scripts to obtain authorization URLs and exchange auth codes for refresh tokens.
+- Fetches bank transactions from TrueLayer-connected providers (HSBC, Bank of Scotland).
+- Parses manually exported HSBC credit card PDF statements from the `statements/` folder.
+- Normalises, deduplicates, and sorts transactions from all sources.
+- Categorises each transaction using keyword rules and bank-assigned categories.
+- Writes monthly totals into the correct cells of `Simple personal budget.xlsx`.
 
 ## Key files
 
-- `fetch_monzo.py` - refreshes Monzo access tokens and fetches Monzo transactions.
-- `fetch_truelayer.py` - refreshes TrueLayer tokens and fetches account transactions for provided TrueLayer refresh tokens.
-- `normalise.py` - combines and deduplicates transactions from Monzo, HSBC, HSBC credit card, and Bank of Scotland into one unified transaction list.
-- `monzo_auth.py` - builds and prints a Monzo authorization URL for initial OAuth authorization.
-- `monzo_token.py` - exchanges a Monzo authorization code for tokens.
-- `truelayer_auth.py` - builds and prints a TrueLayer authorization URL for initial OAuth authorization.
-- `truelayer_token.py` - exchanges a TrueLayer authorization code for tokens.
-- `test_fetch.py` - example entry point to run a monthly fetch and print a summary of results.
-- `.env` - local environment variables loaded by `python-dotenv`.
-- `budgeting/` - local Python virtual environment for the project.
+All source files live in `src/`:
+
+- `fetch_monzo.py` — refreshes Monzo access tokens and fetches Monzo transactions.
+- `fetch_truelayer.py` — refreshes TrueLayer tokens and fetches account transactions for HSBC and Bank of Scotland.
+- `fetch_statements.py` — parses manually exported statement files (PDF, CSV, OFX, XML) from the `statements/` folder.
+- `normalise.py` — combines and deduplicates transactions from all sources into one unified list.
+- `write_to_excel.py` — categorises transactions and writes monthly totals into the correct rows and columns of the budget workbook.
+- `reauth_all.py` — interactive browser-based re-authentication flow for all three bank connections.
+
+Entry point:
+
+- `tests/test_fetch.py` — runs the full monthly pipeline: fetch → parse statements → normalise → write to Excel.
 
 ## Setup
 
-1. Create a `.env` file in the project root with the required values.
-2. Install dependencies into the `budgeting` virtual environment, or use the environment already present.
+1. Create a `.env` file in the project root with the required values (see below).
+2. Activate the virtual environment: `.\budgeting\Scripts\Activate.ps1`
+3. Install dependencies: `pip install -r requirements.txt`
+4. Place `Simple personal budget.xlsx` in the project root.
 
 ### Required environment variables
 
@@ -37,69 +43,25 @@ A small Python project to collect transactions from Monzo and Open Banking provi
 - `TRUELAYER_HSBC_REFRESH_TOKEN`
 - `TRUELAYER_BOS_REFRESH_TOKEN`
 
-
 ## How to use
 
-1. Use `monzo_auth.py` and `monzo_token.py` to obtain Monzo OAuth tokens if you do not already have them.
-2. Use `truelayer_auth.py` and `truelayer_token.py` to obtain TrueLayer authorization and refresh tokens for your banks.
-3. Place the tokens into `.env`.
-4. Run `python test_fetch.py` to fetch transactions for a month, normalise them, and print a summary.
+1. Run `python src/reauth_all.py` if any bank connections have expired (opens browser).
+2. Drop any HSBC credit card PDF statements into the `statements/` folder.
+3. Edit the `year` and `month` at the bottom of `tests/test_fetch.py`.
+4. Run the pipeline from the project root:
+   ```bash
+   python tests/test_fetch.py
+   ```
+5. Open `Simple personal budget.xlsx` — the month column will be populated.
 
-## Current project behaviour
+## HSBC credit card
 
-- Monzo is fetched directly using its token refresh endpoint.
-- TrueLayer is used to fetch current account transactions for HSBC and Bank of Scotland.
-- HSBC credit card transactions are not available automatically through the current Open Banking setup.
-- `normalise.py` merges all transaction sources, sorts by date, and removes exact duplicates.
-
-## Known limitation: HSBC credit card via Open Banking
-
-HSBC is not reliably exposing its credit card transactions through Open Banking / TrueLayer for this project. That means the project cannot automatically fetch the granular credit card transactions you use every month.
-
-This is a significant limitation because most of your monthly spending happens on that credit card, and the credit card feed is the source that would normally provide category-level detail for food, travel, flights, and other spending.
-
-## Options for handling HSBC credit card data
-
-### Option 1: Manual CSV export for HSBC credit card
-
-- Download the HSBC credit card statement as a CSV at the end of each month.
-- Add a small CSV parser alongside the existing automated feeds.
-- Everything else remains fully automatic.
-- The monthly statement only covers up to the 28th of each month, so it does not capture the whole month's usage.
-- To keep the workflow fully automatic you would need to stop using the credit card before the 28th, or manually add the last entries after the 28th.
-- This is the best way to preserve granular transaction detail for credit card spending while keeping the rest of the system automatic.
-
-### Option 2: Use HSBC current account payments as a proxy
-
-- Do not import credit card transactions directly.
-- Use the HSBC current account feed as a proxy by capturing the monthly repayment amount to your credit card.
-- This keeps the workflow automatic, but you lose per-transaction detail for the credit card.
-- This would be fine if you decide to treat all credit card spending as food shopping only, but it becomes inaccurate if your card is also used for travel, flights, or other categories.
-- It is a weaker solution if you need to know whether spending was food, travel, flights, or other categories.
-
-### Option 3: Switch to a card or provider that supports Open Banking credit card feeds
-
-- If possible, use a different credit card provider or bank account that exposes card transactions through Open Banking.
-- This is the cleanest automatic approach if you can move spending to a compatible provider.
-- Otherwise, maintain the mixed mode with the bank account current feed and manual credit card handling.
-
-## Recommended path for this project
-
-Given the current limitation, the most useful path is:
-
-1. Keep the existing automatic Monzo and TrueLayer bank feeds.
-2. Add a dedicated CSV parser for HSBC credit card statements.
-3. Use the current account repayment flow only as a fallback if the CSV cannot be obtained.
-
-That keeps the core automation intact while preserving the detailed credit card transaction data you need for true monthly budgeting.
+HSBC credit card transactions are not available via Open Banking/TrueLayer. The workaround is to export the monthly PDF statement from HSBC online banking and drop it into the `statements/` folder. The PDF parser handles it automatically. A placeholder file at `statements/example_hsbc_credit_card.pdf` shows the expected naming convention.
 
 ## Notes
 
-- The project currently assumes date ranges are provided in UTC-aware `datetime` objects.
+- All `datetime` objects passed to fetch functions must be UTC-aware (`tzinfo=timezone.utc`).
 - The normalisation logic deduplicates transactions using `date`, `description`, `amount`, and `source`.
-- If HSBC credit cards become available via Open Banking in the future, the credit card refresh token path can be enabled again.
-
-## Stop at
-- pdf parsed not fully functioning. trainline amount parsed the phone number instead of the amount.
-- it showed 6 unique transaction even though there are more than that
-- Bank APIs seems to need manual login after not using it for a while. Why is this?
+- Monzo uses refresh token rotation — the new refresh token is written back to `.env` automatically after every run.
+- TrueLayer tokens expire after ~90 days of inactivity and require a full re-auth via `reauth_all.py`.
+- Known bug: Trainline PDF entries can misparse the phone number as the amount.

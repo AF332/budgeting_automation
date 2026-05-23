@@ -1,9 +1,11 @@
 import requests
 from dotenv import load_dotenv, set_key
 from datetime import datetime
+from pathlib import Path
 import os
 
-load_dotenv()
+ENV_FILE = Path(__file__).parent.parent / ".env"
+load_dotenv(ENV_FILE)
 
 
 def refresh_monzo_token() -> str:
@@ -33,8 +35,8 @@ def refresh_monzo_token() -> str:
     new_refresh_token = tokens.get("refresh_token")
 
     if new_access_token and new_refresh_token:
-        set_key(".env", "MONZO_ACCESS_TOKEN", new_access_token)
-        set_key(".env", "MONZO_REFRESH_TOKEN", new_refresh_token)
+        set_key(ENV_FILE, "MONZO_ACCESS_TOKEN", new_access_token)
+        set_key(ENV_FILE, "MONZO_REFRESH_TOKEN", new_refresh_token)
         print("  Monzo tokens rotated and saved to .env successfully.")
     else:
         print("  WARNING: Monzo token refresh failed —", tokens)

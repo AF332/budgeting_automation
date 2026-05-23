@@ -1,3 +1,6 @@
 .env
 __pycache__/
 budgeting/
+Simple personal budget.xlsx
+statements/*.pdf
+!statements/example_hsbc_credit_card.pdf

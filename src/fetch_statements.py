@@ -8,7 +8,7 @@ import pdfplumber
 from ofxparse import OfxParser
 
 
-STATEMENTS_DIR = Path(__file__).parent / "statements"
+STATEMENTS_DIR = Path(__file__).parent.parent / "statements"
 
 
 def parse_date(date_str: str) -> str:

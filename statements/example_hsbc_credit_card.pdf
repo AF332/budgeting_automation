@@ -1,0 +1,7 @@
+This is a placeholder file to show where HSBC credit card PDF statements should be placed.
+
+Drop your monthly PDF statement here, named e.g.:
+  hsbc_credit_card_jan2026.pdf
+  hsbc_credit_card_feb2026.pdf
+
+The script will pick it up automatically when you run test_fetch.py.

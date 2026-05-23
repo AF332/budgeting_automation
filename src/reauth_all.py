@@ -2,11 +2,11 @@ import sys
 import os
 import requests
 import webbrowser
+from pathlib import Path
 from dotenv import load_dotenv, set_key
 
-load_dotenv()
-
-ENV_FILE = ".env"
+ENV_FILE = Path(__file__).parent.parent / ".env"
+load_dotenv(ENV_FILE)
 
 
 def prompt(message: str) -> None:

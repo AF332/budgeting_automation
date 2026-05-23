@@ -1,7 +1,8 @@
-from fetch_monzo import fetch_monzo_transactions
-from fetch_truelayer import fetch_truelayer_transactions
-from fetch_statements import fetch_statement_transactions
-from normalise import normalise_transactions
+from src.fetch_monzo import fetch_monzo_transactions
+from src.fetch_truelayer import fetch_truelayer_transactions
+from src.fetch_statements import fetch_statement_transactions
+from src.normalise import normalise_transactions
+from src.write_to_excel import write_transactions_to_budget
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 import os
@@ -75,6 +76,10 @@ def run_test(year: int, month: int) -> None:
             f"£{pounds:>8.2f} | {t['category']:<15} | {t['description']}"
         )
 
+    print("\nWriting to Excel...")
+    output_path = write_transactions_to_budget(all_transactions, year, month)
+    print(f" Done. Open: {output_path}")
+
 
 if __name__ == "__main__":
-    run_test(year=2026, month=3)
+    run_test(year=2026, month=4)
